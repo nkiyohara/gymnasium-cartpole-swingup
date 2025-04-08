@@ -1,0 +1,66 @@
+name: Python Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allow manual workflow runs from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # Add appropriate xvfb setup for rendering on Ubuntu
+          - os: ubuntu-latest
+            xvfb: true
+          - os: windows-latest
+            xvfb: false
+          - os: macos-latest
+            xvfb: false
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install uv
+      run: |
+        pip install uv
+
+    - name: Install dependencies with uv
+      run: |
+        uv pip install -e .
+        uv pip install pytest pytest-cov pytest-xvfb coverage
+
+    - name: Install headless display for Linux
+      if: matrix.xvfb
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb python3-opengl
+
+    - name: Run tests with xvfb (Linux)
+      if: matrix.xvfb
+      run: |
+        xvfb-run -a pytest tests/ --cov=gymnasium_cartpole_swingup
+
+    - name: Run tests (Windows/macOS)
+      if: ${{ !matrix.xvfb }}
+      run: |
+        pytest tests/ --cov=gymnasium_cartpole_swingup
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        fail_ci_if_error: false
