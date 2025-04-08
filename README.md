@@ -1,5 +1,11 @@
 # Gymnasium CartPole SwingUp
 
+[![PyPI version](https://badge.fury.io/py/gymnasium-cartpole-swingup.svg)](https://badge.fury.io/py/gymnasium-cartpole-swingup)
+[![Python Versions](https://img.shields.io/pypi/pyversions/gymnasium-cartpole-swingup)](https://pypi.org/project/gymnasium-cartpole-swingup/)
+[![License](https://img.shields.io/github/license/nkiyohara/gymnasium-cartpole-swingup)](https://github.com/nkiyohara/gymnasium-cartpole-swingup/blob/main/LICENSE)
+[![Tests](https://github.com/nkiyohara/gymnasium-cartpole-swingup/actions/workflows/python-tests.yml/badge.svg)](https://github.com/nkiyohara/gymnasium-cartpole-swingup/actions/workflows/python-tests.yml)
+[![GitHub release](https://img.shields.io/github/v/release/nkiyohara/gymnasium-cartpole-swingup)](https://github.com/nkiyohara/gymnasium-cartpole-swingup/releases)
+
 A more challenging version of the classic CartPole environment for Gymnasium where the pole starts in a downward position.
 
 ## Description
