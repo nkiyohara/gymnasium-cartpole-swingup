@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           # Add appropriate xvfb setup for rendering on Ubuntu
@@ -33,14 +33,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
-    - name: Install uv
+    - name: Install dependencies
       run: |
-        pip install uv
-
-    - name: Install dependencies with uv
-      run: |
-        uv pip install -e .
-        uv pip install pytest pytest-cov pytest-xvfb coverage
+        python -m pip install --upgrade pip
+        python -m pip install -e .
+        python -m pip install pytest pytest-cov pytest-xvfb coverage
 
     - name: Install headless display for Linux
       if: matrix.xvfb

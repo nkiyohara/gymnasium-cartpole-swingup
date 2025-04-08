@@ -14,7 +14,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -29,7 +28,7 @@ dependencies = [
     "numpy>=1.18.0",
     "pygame>=2.1.0",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 
 [project.urls]
 Homepage = "https://github.com/nkiyohara/gymnasium_cartpole_swingup"
@@ -41,7 +40,7 @@ dev = [
 ]
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"
 line-length = 88
 select = ["E", "F", "I", "W", "N", "B", "UP", "C4", "SIM", "ERA"]
 ignore = ["E501"]
