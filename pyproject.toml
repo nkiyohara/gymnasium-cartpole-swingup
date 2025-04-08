@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gymnasium_cartpole_swingup"
+name = "gymnasium-cartpole-swingup"
 version = "0.1.0"
 description = "CartPole SwingUp environment for Gymnasium"
 readme = "README.md"
@@ -31,8 +31,8 @@ dependencies = [
 requires-python = ">=3.8"
 
 [project.urls]
-Homepage = "https://github.com/nkiyohara/gymnasium_cartpole_swingup"
-Issues = "https://github.com/nkiyohara/gymnasium_cartpole_swingup/issues"
+Homepage = "https://github.com/nkiyohara/gymnasium-cartpole-swingup"
+Issues = "https://github.com/nkiyohara/gymnasium-cartpole-swingup/issues"
 
 [dependency-groups]
 dev = [

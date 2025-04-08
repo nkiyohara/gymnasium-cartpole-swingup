@@ -26,12 +26,6 @@ pip install gymnasium-cartpole-swingup
 uv add gymnasium-cartpole-swingup
 ```
 
-For the development version, install directly from GitHub:
-
-```bash
-pip install git+https://github.com/nkiyohara/gymnasium_cartpole_swingup.git
-```
-
 ## Usage
 
 ```python
