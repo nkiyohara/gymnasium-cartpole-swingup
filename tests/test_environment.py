@@ -19,15 +19,12 @@ def test_reset():
     observation, info = env.reset(seed=42)
 
     # Check observation shape
-    assert observation.shape == (5,)
+    assert observation.shape == (4,)
     assert isinstance(info, dict)
 
     # Check that pole starts in downward position (θ ≈ π)
-    # sine of π should be 0, cosine of π should be -1
-    cos_theta = observation[2]
-    sin_theta = observation[3]
-    assert -1.1 < cos_theta < -0.9  # cos(π) ≈ -1
-    assert -0.6 < sin_theta < 0.6  # sin(π) ≈ 0, with wide tolerance for randomness
+    x, x_dot, theta, theta_dot = observation
+    assert -np.pi - 0.5 < theta < -np.pi + 0.5 or np.pi - 0.5 < theta < np.pi + 0.5  # theta ≈ π
 
 
 def test_step():
@@ -39,7 +36,7 @@ def test_step():
     observation, reward, terminated, truncated, info = env.step(action)
 
     # Check return types
-    assert observation.shape == (5,)
+    assert observation.shape == (4,)
     assert isinstance(reward, float)
     assert isinstance(terminated, bool)
     assert isinstance(truncated, bool)
