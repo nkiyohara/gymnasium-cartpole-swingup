@@ -25,7 +25,7 @@ class CartPoleSwingUpEnv(gym.Env):
         pole_mass: float = 0.5,
         pole_length: float = 0.6,
         force_mag: float = 10.0,
-        dt: float = 0.01,
+        dt: float = 0.1,
         friction: float = 0.1,
         x_threshold: float = 2.4,
         time_limit: int = 1000,
@@ -52,8 +52,13 @@ class CartPoleSwingUpEnv(gym.Env):
 
         # Action space: Force applied to cart (continuous value from -1.0 to 1.0)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
-        # Observation space: [x, x_dot, cos(theta), sin(theta), theta_dot]
-        high = np.array([np.finfo(np.float32).max] * 5, dtype=np.float32)
+        # Observation space: [x, x_dot, theta, theta_dot]
+        high = np.array([
+            self.x_threshold * 2,
+            np.finfo(np.float32).max,
+            np.pi * 2,
+            np.finfo(np.float32).max
+        ], dtype=np.float32)
         self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
 
         # Rendering related
@@ -75,11 +80,8 @@ class CartPoleSwingUpEnv(gym.Env):
         )
         self.t = 0  # Reset step counter
 
-        # Calculate observation (x, x_dot, cosθ, sinθ, θ_dot)
-        x, x_dot, theta, theta_dot = self.state
-        obs = np.array(
-            [x, x_dot, math.cos(theta), math.sin(theta), theta_dot], dtype=np.float32
-        )
+        # Return observation (x, x_dot, theta, theta_dot)
+        obs = np.array(self.state, dtype=np.float32)
 
         # Initialize screen when in human rendering mode
         if self.render_mode == "human":
@@ -115,6 +117,10 @@ class CartPoleSwingUpEnv(gym.Env):
         theta = theta + theta_dot * self.dt
         x_dot = x_dot + xdot_update * self.dt
         theta_dot = theta_dot + thetadot_update * self.dt
+        
+        # Keep theta within [-pi, pi]
+        theta = ((theta + np.pi) % (2 * np.pi)) - np.pi
+        
         self.state = (x, x_dot, theta, theta_dot)
 
         # Calculate reward: higher when pole is upright (cosθ=1) and cart is near center
@@ -140,10 +146,8 @@ class CartPoleSwingUpEnv(gym.Env):
         if terminated:
             truncated = False
 
-        # Prepare next observation
-        obs = np.array(
-            [x, x_dot, math.cos(theta), math.sin(theta), theta_dot], dtype=np.float32
-        )
+        # Return the raw state as observation
+        obs = np.array(self.state, dtype=np.float32)
 
         # Update rendering if in human mode
         if self.render_mode == "human":

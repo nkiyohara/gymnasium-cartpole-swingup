@@ -58,8 +58,8 @@ env = gym.make(
     gravity=9.81,             # Gravitational acceleration (m/s²)
     cart_mass=1.0,            # Mass of the cart (kg)
     pole_mass=0.1,            # Mass of the pole (kg)
-    pole_length=0.5,          # Half-length of the pole (m)
-    force_mag=12.0,           # Force magnitude scale applied to cart
+    pole_length=0.6,          # Length of the pole (m)
+    force_mag=10.0,           # Force magnitude scale applied to cart
     friction=0.05,            # Friction coefficient
     x_threshold=2.5,          # Cart position limit (left/right boundary)
 )
@@ -75,26 +75,25 @@ import gymnasium_cartpole_swingup  # noqa: F401
 
 - **State**: Initially, the pole hangs downward ($\theta \approx \pi$)
 - **Goal**: Swing the pole upright and maintain balance
-- **Action Space**: Force applied to cart $[-1, 1]$
-- **Observation Space**: $[x, \dot{x}, \cos(\theta), \sin(\theta), \dot{\theta}]$
+- **Action Space**: Force applied to cart $[-1, 1]$ (scaled to $[-10, 10]$ N internally)
+- **Observation Space**: $[x, \dot{x}, \theta, \dot{\theta}]$
 - **Reward**: Higher when pole is upright and cart is centered
 
 ### Observation Space Detail
 
-The observation is a 5-dimensional vector:
+The observation is a 4-dimensional vector:
 
 | Index | Observation          | Description                            | Min  | Max  |
 |-------|---------------------|----------------------------------------|------|------|
 | 0     | $x$                 | Cart position along the track           | $-2.4$ | $2.4$  |
 | 1     | $\dot{x}$           | Cart velocity                           | $-\infty$ | $\infty$ |
-| 2     | $\cos(\theta)$      | Cosine of the pole angle                | $-1.0$ | $1.0$  |
-| 3     | $\sin(\theta)$      | Sine of the pole angle                  | $-1.0$ | $1.0$  |
-| 4     | $\dot{\theta}$      | Angular velocity of the pole            | $-\infty$ | $\infty$ |
+| 2     | $\theta$            | Angle of the pole                       | $-\pi$ | $\pi$  |
+| 3     | $\dot{\theta}$      | Angular velocity of the pole            | $-\infty$ | $\infty$ |
 
 Notes:
-- The trigonometric representation $(\cos(\theta), \sin(\theta))$ is used instead of the raw angle to avoid discontinuities in the state space.
-- When the pole is upright, $\cos(\theta) = 1$ and $\sin(\theta) = 0$.
-- When the pole is hanging down, $\cos(\theta) = -1$ and $\sin(\theta) = 0$.
+- The angle $\theta$ is in radians and is kept within the range $[-\pi, \pi]$
+- When the pole is upright, $\theta = 0$
+- When the pole is hanging down, $\theta = \pi$ or $\theta = -\pi$
 
 ### Action Space Detail
 
@@ -105,7 +104,7 @@ The action is a 1-dimensional continuous value:
 | 0     | $F$                 | Horizontal force applied to the cart   | $-1.0$ | $1.0$  |
 
 Notes:
-- The force is scaled internally by a factor of $10.0$
+- The force is scaled internally by a factor of $10.0$, resulting in an effective range of $[-10, 10]$ N
 - Positive values move the cart to the right
 - Negative values move the cart to the left
 
@@ -113,8 +112,8 @@ Notes:
 
 The reward function is a product of two components:
 1. **Pole angle component**: $\frac{\cos(\theta) + 1}{2}$
-   - Maximum value of $1.0$ when the pole is upright ($\cos(\theta) = 1$)
-   - Minimum value of $0.0$ when the pole is hanging down ($\cos(\theta) = -1$)
+   - Maximum value of $1.0$ when the pole is upright ($\theta = 0$)
+   - Minimum value of $0.0$ when the pole is hanging down ($\theta = \pi$ or $\theta = -\pi$)
 
 2. **Cart position component**: $\cos\left(\frac{x}{x_{threshold}} \cdot \frac{\pi}{2}\right)$
    - Maximum value of $1.0$ when the cart is centered ($x = 0$)
@@ -133,9 +132,9 @@ $\ddot{\theta} = \frac{-3m_p l \dot{\theta}^2 \sin(\theta)\cos(\theta) + 6(m_c +
 Where:
 - $m_c = 0.5$ (kg): Mass of the cart (default)
 - $m_p = 0.5$ (kg): Mass of the pole (default)
-- $l = 0.6$ (m): Half-length of the pole (default)
+- $l = 0.6$ (m): Length of the pole (default)
 - $g = 9.82$ (m/s²): Gravitational acceleration (default)
 - $b = 0.1$: Friction coefficient (default)
-- $F$: Applied force, scaled from action value
+- $F$: Applied force, scaled from action value to range $[-10, 10]$ N
 
 All of these parameters can be customized when creating the environment as shown in the example above.
