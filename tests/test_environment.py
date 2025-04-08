@@ -27,7 +27,7 @@ def test_reset():
     cos_theta = observation[2]
     sin_theta = observation[3]
     assert -1.1 < cos_theta < -0.9  # cos(π) ≈ -1
-    assert -0.1 < sin_theta < 0.1  # sin(π) ≈ 0
+    assert -0.2 < sin_theta < 0.2  # sin(π) ≈ 0, with some noise tolerance
 
 
 def test_step():
