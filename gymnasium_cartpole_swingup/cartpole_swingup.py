@@ -17,26 +17,38 @@ class CartPoleSwingUpEnv(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
-    def __init__(self, render_mode: str = None):
+    def __init__(
+        self, 
+        render_mode: str = None,
+        gravity: float = 9.82,
+        cart_mass: float = 0.5,
+        pole_mass: float = 0.5,
+        pole_length: float = 0.6,
+        force_mag: float = 10.0,
+        dt: float = 0.01,
+        friction: float = 0.1,
+        x_threshold: float = 2.4,
+        time_limit: int = 1000,
+    ):
         super().__init__()
         # Physical constants and parameters
-        self.g = 9.82  # Gravitational acceleration
-        self.m_c = 0.5  # Cart mass
-        self.m_p = 0.5  # Pole mass
+        self.g = gravity  # Gravitational acceleration
+        self.m_c = cart_mass  # Cart mass
+        self.m_p = pole_mass  # Pole mass
         self.total_m = self.m_c + self.m_p
-        self.l = 0.6  # Pole length (meters)
+        self.l = pole_length  # Pole length (meters)
         self.m_p_l = self.m_p * self.l
-        self.force_mag = 10.0  # Force magnitude scale applied to cart
-        self.dt = 0.01  # Simulation time step
-        self.b = 0.1  # Friction coefficient
+        self.force_mag = force_mag  # Force magnitude scale applied to cart
+        self.dt = dt  # Simulation time step
+        self.b = friction  # Friction coefficient
         self.t = 0  # Time steps counter
-        self.t_limit = 1000  # Episode step limit
+        self.t_limit = time_limit  # Episode step limit
 
         # Failure thresholds
         self.theta_threshold_radians = (
             12 * 2 * math.pi / 360
         )  # 12 degrees (not used in this env)
-        self.x_threshold = 2.4  # Cart position limit (left/right boundary)
+        self.x_threshold = x_threshold  # Cart position limit (left/right boundary)
 
         # Action space: Force applied to cart (continuous value from -1.0 to 1.0)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)

@@ -46,6 +46,25 @@ for _ in range(1000):
 env.close()
 ```
 
+### Customizing Environment Parameters
+
+You can customize the physics parameters of the environment by passing them to `gym.make()`:
+
+```python
+# Create an environment with custom parameters
+env = gym.make(
+    "CartPoleSwingUp-v0",
+    render_mode="human",
+    gravity=9.81,             # Gravitational acceleration (m/s²)
+    cart_mass=1.0,            # Mass of the cart (kg)
+    pole_mass=0.1,            # Mass of the pole (kg)
+    pole_length=0.5,          # Half-length of the pole (m)
+    force_mag=12.0,           # Force magnitude scale applied to cart
+    friction=0.05,            # Friction coefficient
+    x_threshold=2.5,          # Cart position limit (left/right boundary)
+)
+```
+
 **Note**: The `import gymnasium_cartpole_swingup` line is necessary to register the environment with Gymnasium, even though it may appear unused. If you're using auto-formatters or linters that remove unused imports, you can add a `# noqa` comment or disable that specific check:
 
 ```python
@@ -112,9 +131,11 @@ $\ddot{x} = \frac{-2m_p l \dot{\theta}^2 \sin(\theta) + 3m_p g \sin(\theta)\cos(
 $\ddot{\theta} = \frac{-3m_p l \dot{\theta}^2 \sin(\theta)\cos(\theta) + 6(m_c + m_p)g\sin(\theta) + 6(F - b\dot{x})\cos(\theta)}{4l(m_c + m_p) - 3m_p l \cos^2(\theta)}$
 
 Where:
-- $m_c = 0.5$ (kg): Mass of the cart
-- $m_p = 0.5$ (kg): Mass of the pole
-- $l = 0.6$ (m): Half-length of the pole
-- $g = 9.82$ (m/s²): Gravitational acceleration
-- $b = 0.1$: Friction coefficient
+- $m_c = 0.5$ (kg): Mass of the cart (default)
+- $m_p = 0.5$ (kg): Mass of the pole (default)
+- $l = 0.6$ (m): Half-length of the pole (default)
+- $g = 9.82$ (m/s²): Gravitational acceleration (default)
+- $b = 0.1$: Friction coefficient (default)
 - $F$: Applied force, scaled from action value
+
+All of these parameters can be customized when creating the environment as shown in the example above.
