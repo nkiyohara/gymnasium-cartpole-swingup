@@ -62,6 +62,8 @@ env = gym.make(
     force_mag=10.0,           # Force magnitude scale applied to cart
     friction=0.05,            # Friction coefficient
     x_threshold=2.5,          # Cart position limit (left/right boundary)
+    cost_mode="default",      # Cost function mode ("default" or "pilco")
+    sigma_c=0.25,             # Sigma parameter for PILCO cost function
 )
 ```
 
@@ -110,16 +112,32 @@ Notes:
 
 ### Reward Function
 
-The reward function is a product of two components:
-1. **Pole angle component**: $\frac{\cos(\theta) + 1}{2}$
-   - Maximum value of $1.0$ when the pole is upright ($\theta = 0$)
-   - Minimum value of $0.0$ when the pole is hanging down ($\theta = \pi$ or $\theta = -\pi$)
+The environment supports two different reward (or cost) functions, which can be selected using the `cost_mode` parameter:
 
-2. **Cart position component**: $\cos\left(\frac{x}{x_{threshold}} \cdot \frac{\pi}{2}\right)$
-   - Maximum value of $1.0$ when the cart is centered ($x = 0$)
-   - Decreases to $0.0$ as the cart approaches the boundaries ($x = \pm 2.4$)
+#### Default Mode (`cost_mode="default"`)
+
+The default reward function is a product of two components:
+- **Pole angle component**: $\cos(\theta)$
+  - Maximum value of $1.0$ when the pole is upright ($\theta = 0$)
+  - Minimum value of $-1.0$ when the pole is hanging down ($\theta = \pi$ or $\theta = -\pi$)
+
+- **Cart position component**: $\cos(x)$
+  - Maximum value of $1.0$ when the cart is centered ($x = 0$)
+  - Decreases as the cart moves away from center
 
 Total reward = pole angle component $\times$ cart position component
+
+#### PILCO Mode (`cost_mode="pilco"`)
+
+The PILCO (Probabilistic Inference for Learning COntrol) cost function is based on the squared distance between the pole tip position and the target position:
+
+$reward = 1 - \exp(-\frac{d^2}{2\sigma_c^2})$
+
+Where:
+- $d$ is the Euclidean distance between the current pole tip position and the target (upright) position
+- $\sigma_c$ is a parameter controlling the width of the cost function (default: 0.25)
+
+This cost function is more focused on the pole tip position in Cartesian space rather than the angular position and cart position separately.
 
 ### System Dynamics
 

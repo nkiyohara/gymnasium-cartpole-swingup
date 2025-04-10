@@ -29,6 +29,8 @@ class CartPoleSwingUpEnv(gym.Env):
         friction: float = 0.1,
         x_threshold: float = 2.4,
         time_limit: int = 1000,
+        cost_mode: str = "default",
+        sigma_c: float = 0.25,
     ):
         super().__init__()
         # Physical constants and parameters
@@ -43,6 +45,8 @@ class CartPoleSwingUpEnv(gym.Env):
         self.b = friction  # Friction coefficient
         self.t = 0  # Time steps counter
         self.t_limit = time_limit  # Episode step limit
+        self.cost_mode = cost_mode
+        self.sigma_c = sigma_c
 
         # Failure thresholds
         self.theta_threshold_radians = (
@@ -76,7 +80,7 @@ class CartPoleSwingUpEnv(gym.Env):
         # Using self.np_random instead of np.random for seed-controlled randomness
         self.state = self.np_random.normal(
             loc=np.array([0.0, 0.0, np.pi, 0.0], dtype=np.float32),
-            scale=np.array([0.2, 0.2, 0.2, 0.2], dtype=np.float32),
+            scale=np.array([0.05, 0.05, 0.05, 0.05], dtype=np.float32),
         )
         self.t = 0  # Reset step counter
 
@@ -124,13 +128,17 @@ class CartPoleSwingUpEnv(gym.Env):
         self.state = (x, x_dot, theta, theta_dot)
 
         # Calculate reward: higher when pole is upright (cosθ=1) and cart is near center
-        reward_theta = (
-            math.cos(theta) + 1.0
-        ) / 2.0  # max 1 when cosθ=1, min 0 when cosθ=-1
-        reward_x = math.cos(
-            (x / self.x_threshold) * (math.pi / 2.0)
-        )  # 1 at x=0, 0 at x=±x_threshold
-        reward = reward_theta * reward_x
+        if self.cost_mode == "pilco":
+            tip_x = x + self.l * math.sin(theta)
+            tip_y = self.l * math.cos(theta)
+            target_x = 0.0
+            target_y = self.l
+            square_distance = (tip_x - target_x)**2 + (tip_y - target_y)**2
+            reward = 1 - math.exp(-square_distance / (2 * self.sigma_c**2))
+        elif self.cost_mode == "default":
+            reward = math.cos(theta) * math.cos(x)
+        else:
+            raise ValueError(f"Invalid cost_mode: {self.cost_mode}")
 
         # Termination conditions
         terminated = False

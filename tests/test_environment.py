@@ -55,6 +55,32 @@ def test_step():
     assert terminated or abs(observation[0]) > 2.0
 
 
+def test_cost_modes():
+    """Test that both cost modes (default and pilco) work correctly."""
+    # Test default cost mode
+    env_default = gym.make("CartPoleSwingUp-v0", cost_mode="default")
+    env_default.reset(seed=42)
+    action = np.array([0.0])  # No force
+    obs_default, reward_default, _, _, _ = env_default.step(action)
+    
+    # Test pilco cost mode
+    env_pilco = gym.make("CartPoleSwingUp-v0", cost_mode="pilco", sigma_c=0.25)
+    env_pilco.reset(seed=42)  # Same seed as default
+    obs_pilco, reward_pilco, _, _, _ = env_pilco.step(action)
+    
+    # Observations should be the same with same seed and action
+    np.testing.assert_allclose(obs_default, obs_pilco)
+    
+    # Rewards should be different between modes
+    assert reward_default != reward_pilco
+    
+    # Test invalid cost mode
+    with pytest.raises(ValueError):
+        env_invalid = gym.make("CartPoleSwingUp-v0", cost_mode="invalid")
+        env_invalid.reset()
+        env_invalid.step(np.array([0.0]))
+
+
 def test_render_modes():
     """Test that render modes are correct."""
     env = gym.make("CartPoleSwingUp-v0")
