@@ -19,4 +19,4 @@ register(
 # Explicitly export variables and classes to help with linting and import detection
 __all__ = ["CartPoleSwingUpEnv"]
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
