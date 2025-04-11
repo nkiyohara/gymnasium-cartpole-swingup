@@ -64,6 +64,7 @@ env = gym.make(
     x_threshold=2.5,          # Cart position limit (left/right boundary)
     cost_mode="default",      # Cost function mode ("default" or "pilco")
     sigma_c=0.25,             # Sigma parameter for PILCO cost function
+    obs_mode="raw",           # Observation mode ("raw" or "trig")
 )
 ```
 
@@ -78,12 +79,16 @@ import gymnasium_cartpole_swingup  # noqa: F401
 - **State**: Initially, the pole hangs downward ($\theta \approx \pi$)
 - **Goal**: Swing the pole upright and maintain balance
 - **Action Space**: Force applied to cart $[-1, 1]$ (scaled to $[-10, 10]$ N internally)
-- **Observation Space**: $[x, \dot{x}, \theta, \dot{\theta}]$
+- **Observation Space**: Depends on the `obs_mode` parameter (see below)
 - **Reward**: Higher when pole is upright and cart is centered
 
 ### Observation Space Detail
 
-The observation is a 4-dimensional vector:
+The environment supports two different observation space formats, which can be selected using the `obs_mode` parameter:
+
+#### Raw Mode (`obs_mode="raw"`)
+
+The default observation is a 4-dimensional vector:
 
 | Index | Observation          | Description                            | Min  | Max  |
 |-------|---------------------|----------------------------------------|------|------|
@@ -92,7 +97,27 @@ The observation is a 4-dimensional vector:
 | 2     | $\theta$            | Angle of the pole                       | $-\pi$ | $\pi$  |
 | 3     | $\dot{\theta}$      | Angular velocity of the pole            | $-\infty$ | $\infty$ |
 
+#### Trigonometric Mode (`obs_mode="trig"`)
+
+In this mode, the angle $\theta$ is replaced with its sine and cosine components, resulting in a 5-dimensional vector:
+
+| Index | Observation          | Description                            | Min  | Max  |
+|-------|---------------------|----------------------------------------|------|------|
+| 0     | $x$                 | Cart position along the track           | $-2.4$ | $2.4$  |
+| 1     | $\dot{x}$           | Cart velocity                           | $-\infty$ | $\infty$ |
+| 2     | $\sin(\theta)$      | Sine of the pole angle                  | $-1.0$ | $1.0$  |
+| 3     | $\cos(\theta)$      | Cosine of the pole angle                | $-1.0$ | $1.0$  |
+| 4     | $\dot{\theta}$      | Angular velocity of the pole            | $-\infty$ | $\infty$ |
+
+Using the trigonometric mode can be beneficial for learning algorithms as it provides a continuous representation of the angle without discontinuities at $\pm\pi$.
+
 Notes:
+- When the pole is upright, $\sin(\theta) = 0$ and $\cos(\theta) = 1$
+- When the pole is hanging down, $\sin(\theta) = 0$ and $\cos(\theta) = -1$
+- When the pole is horizontal to the right, $\sin(\theta) = 1$ and $\cos(\theta) = 0$
+- When the pole is horizontal to the left, $\sin(\theta) = -1$ and $\cos(\theta) = 0$
+
+For the raw mode:
 - The angle $\theta$ is in radians and is kept within the range $[-\pi, \pi]$
 - When the pole is upright, $\theta = 0$
 - When the pole is hanging down, $\theta = \pi$ or $\theta = -\pi$

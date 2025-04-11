@@ -31,6 +31,7 @@ class CartPoleSwingUpEnv(gym.Env):
         time_limit: int = 1000,
         cost_mode: str = "default",
         sigma_c: float = 0.25,
+        obs_mode: str = "raw",
     ):
         super().__init__()
         # Physical constants and parameters
@@ -47,6 +48,7 @@ class CartPoleSwingUpEnv(gym.Env):
         self.t_limit = time_limit  # Episode step limit
         self.cost_mode = cost_mode
         self.sigma_c = sigma_c
+        self.obs_mode = obs_mode  # Observation mode: 'raw' or 'trig'
 
         # Failure thresholds
         self.theta_threshold_radians = (
@@ -56,14 +58,36 @@ class CartPoleSwingUpEnv(gym.Env):
 
         # Action space: Force applied to cart (continuous value from -1.0 to 1.0)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
-        # Observation space: [x, x_dot, theta, theta_dot]
-        high = np.array([
-            self.x_threshold * 2,
-            np.finfo(np.float32).max,
-            np.pi * 2,
-            np.finfo(np.float32).max
-        ], dtype=np.float32)
-        self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
+        
+        # Observation space depends on obs_mode
+        if self.obs_mode == "raw":
+            # Original: [x, x_dot, theta, theta_dot]
+            high = np.array([
+                self.x_threshold * 2,
+                np.finfo(np.float32).max,
+                np.pi * 2,
+                np.finfo(np.float32).max
+            ], dtype=np.float32)
+            self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
+        elif self.obs_mode == "trig":
+            # Trigonometric: [x, x_dot, sin(theta), cos(theta), theta_dot]
+            high = np.array([
+                self.x_threshold * 2,
+                np.finfo(np.float32).max,
+                1.0,  # sin(theta)
+                1.0,  # cos(theta)
+                np.finfo(np.float32).max
+            ], dtype=np.float32)
+            low = np.array([
+                -self.x_threshold * 2,
+                -np.finfo(np.float32).max,
+                -1.0,  # sin(theta)
+                -1.0,  # cos(theta)
+                -np.finfo(np.float32).max
+            ], dtype=np.float32)
+            self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        else:
+            raise ValueError(f"Invalid obs_mode: {self.obs_mode}. Must be 'raw' or 'trig'")
 
         # Rendering related
         self.render_mode = render_mode
@@ -84,14 +108,29 @@ class CartPoleSwingUpEnv(gym.Env):
         )
         self.t = 0  # Reset step counter
 
-        # Return observation (x, x_dot, theta, theta_dot)
-        obs = np.array(self.state, dtype=np.float32)
+        # Return observation based on the selected mode
+        obs = self._get_obs()
 
         # Initialize screen when in human rendering mode
         if self.render_mode == "human":
             self.render()  # Render initial state
 
         return obs, {}
+
+    def _get_obs(self):
+        """Convert the internal state to the desired observation format."""
+        x, x_dot, theta, theta_dot = self.state
+        
+        if self.obs_mode == "raw":
+            # Return raw state [x, x_dot, theta, theta_dot]
+            return np.array(self.state, dtype=np.float32)
+        elif self.obs_mode == "trig":
+            # Return [x, x_dot, sin(theta), cos(theta), theta_dot]
+            sin_theta = math.sin(theta)
+            cos_theta = math.cos(theta)
+            return np.array([x, x_dot, sin_theta, cos_theta, theta_dot], dtype=np.float32)
+        else:
+            raise ValueError(f"Invalid obs_mode: {self.obs_mode}")
 
     def step(self, action):
         # Convert action to force
@@ -155,8 +194,8 @@ class CartPoleSwingUpEnv(gym.Env):
         if terminated:
             truncated = False
 
-        # Return the raw state as observation
-        obs = np.array(self.state, dtype=np.float32)
+        # Return observation based on selected mode
+        obs = self._get_obs()
 
         # Update rendering if in human mode
         if self.render_mode == "human":

@@ -101,3 +101,51 @@ def test_render_rgb_array():
     assert img.shape[2] == 3  # RGB channels
     assert img.shape[0] > 0  # Height
     assert img.shape[1] > 0  # Width
+
+
+def test_obs_modes():
+    """Test that both observation modes (raw and trig) work correctly."""
+    # Test raw observation mode
+    env_raw = gym.make("CartPoleSwingUp-v0", obs_mode="raw")
+    obs_raw, _ = env_raw.reset(seed=42)
+    
+    # Raw observation should be 4-dimensional: [x, x_dot, theta, theta_dot]
+    assert obs_raw.shape == (4,)
+    
+    # Test trigonometric observation mode
+    env_trig = gym.make("CartPoleSwingUp-v0", obs_mode="trig")
+    obs_trig, _ = env_trig.reset(seed=42)  # Same seed as raw
+    
+    # Trig observation should be 5-dimensional: [x, x_dot, sin(theta), cos(theta), theta_dot]
+    assert obs_trig.shape == (5,)
+    
+    # Verify observation space dimensions
+    assert env_raw.observation_space.shape == (4,)
+    assert env_trig.observation_space.shape == (5,)
+    
+    # Verify the values are consistent between raw and trig modes
+    x_raw, x_dot_raw, theta_raw, theta_dot_raw = obs_raw
+    x_trig, x_dot_trig, sin_theta, cos_theta, theta_dot_trig = obs_trig
+    
+    # Position and velocities should be the same
+    assert x_raw == x_trig
+    assert x_dot_raw == x_dot_trig
+    assert theta_dot_raw == theta_dot_trig
+    
+    # Verify that sin(theta) and cos(theta) match the raw theta value
+    np.testing.assert_allclose(sin_theta, np.sin(theta_raw), rtol=1e-5)
+    np.testing.assert_allclose(cos_theta, np.cos(theta_raw), rtol=1e-5)
+    
+    # Test step function with both modes
+    action = np.array([0.5])
+    next_obs_raw, _, _, _, _ = env_raw.step(action)
+    next_obs_trig, _, _, _, _ = env_trig.step(action)
+    
+    # Verify shapes after step
+    assert next_obs_raw.shape == (4,)
+    assert next_obs_trig.shape == (5,)
+    
+    # Test invalid observation mode
+    with pytest.raises(ValueError):
+        env_invalid = gym.make("CartPoleSwingUp-v0", obs_mode="invalid")
+        env_invalid.reset()
