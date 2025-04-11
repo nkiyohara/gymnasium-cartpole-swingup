@@ -134,7 +134,8 @@ class CartPoleSwingUpEnv(gym.Env):
             target_x = 0.0
             target_y = self.l
             square_distance = (tip_x - target_x)**2 + (tip_y - target_y)**2
-            reward = 1 - math.exp(-square_distance / (2 * self.sigma_c**2))
+            cost = 1 - math.exp(-square_distance / (2 * self.sigma_c**2))
+            reward = -cost
         elif self.cost_mode == "default":
             reward = math.cos(theta) * math.cos(x)
         else:

@@ -131,7 +131,9 @@ Total reward = pole angle component $\times$ cart position component
 
 The PILCO (Probabilistic Inference for Learning COntrol) cost function is based on the squared distance between the pole tip position and the target position:
 
-$reward = 1 - \exp(-\frac{d^2}{2\sigma_c^2})$
+$cost = 1 - \exp(-\frac{d^2}{2\sigma_c^2})$
+
+$reward = -cost$
 
 Where:
 - $d$ is the Euclidean distance between the current pole tip position and the target (upright) position
