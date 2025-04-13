@@ -27,6 +27,78 @@ def test_reset():
     assert -np.pi - 0.5 < theta < -np.pi + 0.5 or np.pi - 0.5 < theta < np.pi + 0.5  # theta ≈ π
 
 
+def test_custom_initial_state():
+    """Test setting custom initial state through reset options."""
+    env = gym.make("CartPoleSwingUp-v0")
+    
+    # Set a specific custom initial state: cart at position 1.0, pole at 45 degrees
+    custom_state = [1.0, 0.0, np.pi/4, 0.0]
+    observation, info = env.reset(options={"initial_state": custom_state})
+    
+    # Verify that the returned observation matches our custom state
+    np.testing.assert_allclose(observation, custom_state, rtol=1e-5)
+    
+    # Try a different initial state
+    custom_state_2 = [-0.5, 0.1, np.pi/2, -0.1]
+    observation, info = env.reset(options={"initial_state": custom_state_2})
+    
+    # Verify that the returned observation matches the second custom state
+    np.testing.assert_allclose(observation, custom_state_2, rtol=1e-5)
+    
+    # Test with trigonometric observation mode
+    env_trig = gym.make("CartPoleSwingUp-v0", obs_mode="trig")
+    custom_state_3 = [0.0, 0.0, np.pi/3, 0.0]  # Cart centered, pole at 60 degrees
+    observation, info = env_trig.reset(options={"initial_state": custom_state_3})
+    
+    # For trigonometric mode, verify that the observation correctly transforms theta
+    x, x_dot, sin_theta, cos_theta, theta_dot = observation
+    expected_sin = np.sin(custom_state_3[2])
+    expected_cos = np.cos(custom_state_3[2])
+    
+    np.testing.assert_allclose(x, custom_state_3[0], rtol=1e-5)
+    np.testing.assert_allclose(x_dot, custom_state_3[1], rtol=1e-5)
+    np.testing.assert_allclose(sin_theta, expected_sin, rtol=1e-5)
+    np.testing.assert_allclose(cos_theta, expected_cos, rtol=1e-5) 
+    np.testing.assert_allclose(theta_dot, custom_state_3[3], rtol=1e-5)
+
+
+def test_customized_initialization_parameters():
+    """Test that custom initialization parameters work."""
+    # Create environment with custom initial state distribution
+    custom_mean = np.array([0.5, 0.0, 0.0, 0.0])  # Cart offset, pole up
+    custom_noise = np.array([0.01, 0.01, 0.01, 0.01])  # Small noise
+    
+    env = gym.make(
+        "CartPoleSwingUp-v0", 
+        initial_state_mean=custom_mean,
+        initial_state_noise=custom_noise
+    )
+    
+    # Perform multiple resets to verify the distribution
+    num_samples = 50
+    states = []
+    
+    for _ in range(num_samples):
+        observation, _ = env.reset(seed=None)  # Use different seeds
+        states.append(observation)
+    
+    # Convert to numpy array for analysis
+    states = np.array(states)
+    
+    # Calculate mean across all samples
+    empirical_mean = np.mean(states, axis=0)
+    
+    # The empirical mean should be close to our custom mean (allowing some variance)
+    # We use a relatively loose tolerance due to random sampling
+    np.testing.assert_allclose(empirical_mean, custom_mean, rtol=0.2, atol=0.2)
+    
+    # Verify that the standard deviation is in the right order of magnitude
+    empirical_std = np.std(states, axis=0)
+    # Standard deviation might vary, but should be in similar order of magnitude
+    assert all(empirical_std < custom_noise * 3), "Standard deviation too large"
+    assert all(empirical_std > custom_noise * 0.1), "Standard deviation too small"
+
+
 def test_step():
     """Test the step method."""
     env = gym.make("CartPoleSwingUp-v0")

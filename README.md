@@ -10,7 +10,7 @@ A more challenging version of the classic CartPole environment for Gymnasium whe
 
 ## Description
 
-This package provides a port of the CartPole SwingUp environment to the modern Gymnasium API. It is based on:
+This package provides a port of the CartPole SwingUp environment to the modern [Gymnasium](https://gymnasium.farama.org/) API. It is based on:
 - [zuoxingdong/DeepPILCO](https://github.com/zuoxingdong/DeepPILCO/blob/master/cartpole_swingup.py)
 - [hardmaru/estool](https://github.com/hardmaru/estool/blob/master/custom_envs/cartpole_swingup.py)
 
@@ -46,6 +46,32 @@ for _ in range(1000):
 env.close()
 ```
 
+### Custom Initial State
+
+You can reset the environment to any arbitrary initial state using the `options` parameter:
+
+```python
+import gymnasium as gym
+import numpy as np
+import gymnasium_cartpole_swingup
+
+# Create the environment
+env = gym.make("CartPoleSwingUp-v0")
+
+# Reset with a specific initial state: [x, x_dot, theta, theta_dot]
+# Example: Start with pole at 45 degrees (π/4 radians) and no movement
+obs, info = env.reset(options={"initial_state": [0.0, 0.0, np.pi/4, 0.0]})
+
+# The default reset (randomized around downward position)
+obs, info = env.reset()
+```
+
+The `initial_state` option allows you to specify any exact initial state as `[x, x_dot, theta, theta_dot]`. This is useful for:
+- Testing policies from specific starting conditions
+- Curriculum learning with progressively harder initial states
+- Reproducible experiments with specific starting points
+- Evaluating robustness across different initial conditions
+
 ### Customizing Environment Parameters
 
 You can customize the physics parameters of the environment by passing them to `gym.make()`:
@@ -65,8 +91,14 @@ env = gym.make(
     cost_mode="default",      # Cost function mode ("default" or "pilco")
     sigma_c=0.25,             # Sigma parameter for PILCO cost function
     obs_mode="raw",           # Observation mode ("raw" or "trig")
+    initial_state_mean=np.array([0.0, 0.0, np.pi, 0.0]),  # Mean of initial state distribution
+    initial_state_noise=np.array([0.05, 0.05, 0.05, 0.05]),  # Noise scale for initial state
 )
 ```
+
+The `initial_state_mean` and `initial_state_noise` parameters control the default randomized initialization when not providing a specific initial state:
+- `initial_state_mean`: The mean values for the initial state `[x, x_dot, theta, theta_dot]` (default: `[0.0, 0.0, π, 0.0]` - pole pointing down)
+- `initial_state_noise`: Standard deviation for each state component (default: `[0.05, 0.05, 0.05, 0.05]`)
 
 ### Customizing Reward Function
 
@@ -123,6 +155,8 @@ import gymnasium_cartpole_swingup  # noqa: F401
 - **Action Space**: Force applied to cart $[-1, 1]$ (scaled to $[-10, 10]$ N internally)
 - **Observation Space**: Depends on the `obs_mode` parameter (see below)
 - **Reward**: Higher when pole is upright and cart is centered
+
+This is a more challenging version of the standard [Gymnasium CartPole](https://gymnasium.farama.org/environments/classic_control/cart_pole/) environment.
 
 ### Observation Space Detail
 
@@ -210,7 +244,7 @@ Where:
 - $x_{\text{target}} = 0$ and $y_{\text{target}} = l$ are the target (upright) coordinates
 - $\sigma_c$ is a parameter controlling the width of the cost function (default: 0.25)
 
-This cost function is more focused on the pole tip position in Cartesian space rather than the angular position and cart position separately.
+This cost function is more focused on the pole tip position in Cartesian space rather than the angular position and cart position separately. It is based on the approach described in the [PILCO paper](https://dl.acm.org/doi/10.5555/3104482.3104541) by Deisenroth & Rasmussen.
 
 #### Custom Reward Function
 

@@ -13,6 +13,34 @@ class CartPoleSwingUpEnv(gym.Env):
 
     This environment is a modified version of the classic cart-pole, where the pole
     starts in a downward position and must be swung up and balanced.
+    
+    Args:
+        render_mode (str): Rendering mode ('human' or 'rgb_array').
+        gravity (float): Gravitational acceleration.
+        cart_mass (float): Mass of the cart.
+        pole_mass (float): Mass of the pole.
+        pole_length (float): Length of the pole.
+        force_mag (float): Maximum force magnitude applied to the cart.
+        dt (float): Simulation time step.
+        friction (float): Friction coefficient.
+        x_threshold (float): Threshold for cart position (episode terminates if exceeded).
+        time_limit (int): Maximum number of steps per episode.
+        cost_mode (str): Reward function mode ('default' or 'pilco').
+        sigma_c (float): Parameter for PILCO reward function.
+        obs_mode (str): Observation mode ('raw' or 'trig').
+        custom_reward_fn (callable): Custom reward function.
+        initial_state_mean (np.ndarray): Mean of the initial state distribution [x, x_dot, theta, theta_dot].
+            Default is [0.0, 0.0, π, 0.0] (pole pointing down).
+        initial_state_noise (np.ndarray): Standard deviation for each state component.
+            Default is [0.05, 0.05, 0.05, 0.05].
+    
+    Note:
+        The reset method can be used in two ways:
+        1. Deterministic: Set exact initial state by passing 'initial_state' in options.
+           Example: `env.reset(options={"initial_state": [0.0, 0.0, np.pi, 0.0]})`
+        
+        2. Default randomized: Use the environment's default initialization parameters.
+           Example: `env.reset()`
     """
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
@@ -33,6 +61,8 @@ class CartPoleSwingUpEnv(gym.Env):
         sigma_c: float = 0.25,
         obs_mode: str = "raw",
         custom_reward_fn: callable = None,
+        initial_state_mean: np.ndarray = None,
+        initial_state_noise: np.ndarray = None,
     ):
         super().__init__()
         # Physical constants and parameters
@@ -51,6 +81,12 @@ class CartPoleSwingUpEnv(gym.Env):
         self.sigma_c = sigma_c
         self.obs_mode = obs_mode  # Observation mode: 'raw' or 'trig'
         self.custom_reward_fn = custom_reward_fn  # Custom reward function
+        
+        # Initial state configuration
+        # Default initial state: [x=0, x_dot=0, theta=pi, theta_dot=0]
+        self.initial_state_mean = initial_state_mean if initial_state_mean is not None else np.array([0.0, 0.0, np.pi, 0.0], dtype=np.float32)
+        # Default noise scale: [0.05, 0.05, 0.05, 0.05]
+        self.initial_state_noise = initial_state_noise if initial_state_noise is not None else np.array([0.05, 0.05, 0.05, 0.05], dtype=np.float32)
 
         # Failure thresholds
         self.theta_threshold_radians = (
@@ -102,12 +138,18 @@ class CartPoleSwingUpEnv(gym.Env):
     def reset(self, seed=None, options=None):
         # Reset using Gymnasium's convention: set seed and sample initial state
         super().reset(seed=seed)
-        # Generate initial state with random noise (near x=0, theta=pi)
-        # Using self.np_random instead of np.random for seed-controlled randomness
-        self.state = self.np_random.normal(
-            loc=np.array([0.0, 0.0, np.pi, 0.0], dtype=np.float32),
-            scale=np.array([0.05, 0.05, 0.05, 0.05], dtype=np.float32),
-        )
+        
+        # Check if options contains exact initial state specification
+        if options is not None and "initial_state" in options:
+            # Set exact initial state (deterministic)
+            self.state = np.array(options["initial_state"], dtype=np.float32)
+        else:
+            # Default: Use instance variables for randomization
+            self.state = self.np_random.normal(
+                loc=self.initial_state_mean,
+                scale=self.initial_state_noise,
+            )
+            
         self.t = 0  # Reset step counter
 
         # Return observation based on the selected mode
