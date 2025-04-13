@@ -21,4 +21,4 @@ __all__ = ["CartPoleSwingUpEnv"]
 
 # Version is defined here as the single source of truth
 # When updating version, only change it here
-__version__ = "0.1.7"
+__version__ = "0.1.8"
