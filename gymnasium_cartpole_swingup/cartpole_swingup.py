@@ -329,7 +329,7 @@ class CartPoleSwingUpEnv(gym.Env):
         # Rotate pole by theta (negate since in pygame coordinate system, down is +θ)
         pole_coords_rotated = []
         for coord in pole_coords:
-            vec = pygame.math.Vector2(coord).rotate_rad(-theta)
+            vec = pygame.math.Vector2(coord).rotate_rad(theta)
             pole_coords_rotated.append((vec[0] + cartx, vec[1] + carty))
         # Draw pole (blue)
         pygame.gfxdraw.aapolygon(surf, pole_coords_rotated, (0, 0, 255))
@@ -347,7 +347,7 @@ class CartPoleSwingUpEnv(gym.Env):
         # Draw pole tip (small black circle)
         # Use the same coordinate system and rotation as the pole itself
         # This ensures the black circle stays exactly at the end of the pole
-        pole_top = pygame.math.Vector2(0, pole_len).rotate_rad(-theta)
+        pole_top = pygame.math.Vector2(0, pole_len).rotate_rad(theta)
         pole_top_x = int(cartx + pole_top.x)
         pole_top_y = int(carty + pole_top.y)
 

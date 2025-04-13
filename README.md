@@ -26,6 +26,13 @@ pip install gymnasium-cartpole-swingup
 uv add gymnasium-cartpole-swingup
 ```
 
+## Examples
+
+Two examples for the CartPole SwingUp environment:
+
+- `examples/random_agent.py`: Shows basic environment usage with a random agent
+- `examples/keyboard_control.py`: Interactive control using keyboard (arrows for movement, space for no force)
+
 ## Usage
 
 ```python

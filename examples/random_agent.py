@@ -1,5 +1,5 @@
 """
-Example script for using the CartPoleSwingUp environment.
+Example script for using the CartPoleSwingUp environment with a random agent.
 
 This script demonstrates how to use the CartPoleSwingUp environment
 with a random agent. The agent will not be able to solve the task,
@@ -59,4 +59,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 
