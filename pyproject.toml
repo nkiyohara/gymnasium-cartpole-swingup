@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gymnasium-cartpole-swingup"
-version = "0.1.5"
+dynamic = ["version"]
 description = "CartPole SwingUp environment for Gymnasium"
 readme = "README.md"
 authors = [{name = "Naoki Kiyohara", email = "n.kiyohara23@imperial.ac.uk"}]
@@ -33,6 +33,12 @@ requires-python = ">=3.8"
 [project.urls]
 Homepage = "https://github.com/nkiyohara/gymnasium-cartpole-swingup"
 Issues = "https://github.com/nkiyohara/gymnasium-cartpole-swingup/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "gymnasium_cartpole_swingup.__version__"}
+
+[tool.uv]
+cache-keys = [{ file = "gymnasium_cartpole_swingup/__init__.py" }]
 
 [dependency-groups]
 dev = [
