@@ -32,6 +32,7 @@ class CartPoleSwingUpEnv(gym.Env):
         cost_mode: str = "default",
         sigma_c: float = 0.25,
         obs_mode: str = "raw",
+        custom_reward_fn: callable = None,
     ):
         super().__init__()
         # Physical constants and parameters
@@ -49,6 +50,7 @@ class CartPoleSwingUpEnv(gym.Env):
         self.cost_mode = cost_mode
         self.sigma_c = sigma_c
         self.obs_mode = obs_mode  # Observation mode: 'raw' or 'trig'
+        self.custom_reward_fn = custom_reward_fn  # Custom reward function
 
         # Failure thresholds
         self.theta_threshold_radians = (
@@ -132,12 +134,31 @@ class CartPoleSwingUpEnv(gym.Env):
         else:
             raise ValueError(f"Invalid obs_mode: {self.obs_mode}")
 
+    def _compute_default_reward(self, state):
+        """Calculate the default reward function (cos(theta) * cos(x))."""
+        x, _, theta, _ = state
+        return math.cos(theta) * math.cos(x)
+    
+    def _compute_pilco_reward(self, state):
+        """Calculate the PILCO reward function based on tip position."""
+        x, _, theta, _ = state
+        tip_x = x + self.l * math.sin(theta)
+        tip_y = self.l * math.cos(theta)
+        target_x = 0.0
+        target_y = self.l
+        square_distance = (tip_x - target_x)**2 + (tip_y - target_y)**2
+        cost = 1 - math.exp(-square_distance / (2 * self.sigma_c**2))
+        return -cost
+
     def step(self, action):
         # Convert action to force
         act = np.clip(action, -1.0, 1.0).astype(np.float32)
         # action is a shape=(1,) array, convert to scalar
         force = float(act[0] * self.force_mag)
 
+        # Store previous state for reward calculation
+        prev_state = self.state
+        
         # Unpack state variables
         x, x_dot, theta, theta_dot = self.state
         # Calculate trigonometric functions
@@ -166,17 +187,15 @@ class CartPoleSwingUpEnv(gym.Env):
         
         self.state = (x, x_dot, theta, theta_dot)
 
-        # Calculate reward: higher when pole is upright (cosθ=1) and cart is near center
-        if self.cost_mode == "pilco":
-            tip_x = x + self.l * math.sin(theta)
-            tip_y = self.l * math.cos(theta)
-            target_x = 0.0
-            target_y = self.l
-            square_distance = (tip_x - target_x)**2 + (tip_y - target_y)**2
-            cost = 1 - math.exp(-square_distance / (2 * self.sigma_c**2))
-            reward = -cost
+        # Calculate reward
+        if self.custom_reward_fn is not None:
+            # Use custom reward function if provided
+            # The function should take (state, action, next_state) as input
+            reward = self.custom_reward_fn(prev_state, action, self.state)
+        elif self.cost_mode == "pilco":
+            reward = self._compute_pilco_reward(self.state)
         elif self.cost_mode == "default":
-            reward = math.cos(theta) * math.cos(x)
+            reward = self._compute_default_reward(self.state)
         else:
             raise ValueError(f"Invalid cost_mode: {self.cost_mode}")
 

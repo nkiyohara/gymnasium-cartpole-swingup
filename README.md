@@ -68,6 +68,48 @@ env = gym.make(
 )
 ```
 
+### Customizing Reward Function
+
+You can define and use your own custom reward function instead of the built-in ones:
+
+```python
+import gymnasium as gym
+import numpy as np
+import gymnasium_cartpole_swingup
+
+# Define a custom reward function that takes state, action, and next_state
+def my_custom_reward(state, action, next_state):
+    # Previous state (s_t)
+    prev_x, prev_x_dot, prev_theta, prev_theta_dot = state
+    
+    # Action that was taken (a_t)
+    force = action[0]  # Scaled force applied to cart
+    
+    # Resulting state after the action (s_{t+1})
+    x, x_dot, theta, theta_dot = next_state
+    
+    # Example: Reward based on improvement in pole angle and penalize large actions
+    angle_improvement = abs(prev_theta - np.pi) - abs(theta - np.pi)  # Higher when getting closer to upright
+    action_penalty = -0.1 * abs(force)  # Small penalty for large actions
+    position_penalty = -0.05 * abs(x)   # Small penalty for distance from center
+    
+    return angle_improvement + action_penalty + position_penalty
+
+# Create environment with custom reward function
+env = gym.make('CartPoleSwingUp-v0', custom_reward_fn=my_custom_reward)
+
+# Now the environment will use your custom reward function
+```
+
+Your custom reward function should take three parameters:
+1. `state`: The state before the action ($s_t = (x_t, \dot{x}_t, \theta_t, \dot{\theta}_t)$)
+2. `action`: The action taken ($a_t$, a numpy array containing one value)
+3. `next_state`: The resulting state after the action ($s_{t+1} = (x_{t+1}, \dot{x}_{t+1}, \theta_{t+1}, \dot{\theta}_{t+1})$)
+
+The function should return a scalar reward value $r_t = R(s_t, a_t, s_{t+1})$.
+
+**Important**: The custom reward function always receives the internal state representation $(x, \dot{x}, \theta, \dot{\theta})$ regardless of the `obs_mode` setting. Even if you're using `obs_mode="trig"` where observations are $(x, \dot{x}, \sin(\theta), \cos(\theta), \dot{\theta})$, your reward function will still receive the raw internal state. This allows your reward logic to work consistently regardless of the observation format used for learning.
+
 **Note**: The `import gymnasium_cartpole_swingup` line is necessary to register the environment with Gymnasium, even though it may appear unused. If you're using auto-formatters or linters that remove unused imports, you can add a `# noqa` comment or disable that specific check:
 
 ```python
@@ -137,42 +179,62 @@ Notes:
 
 ### Reward Function
 
-The environment supports two different reward (or cost) functions, which can be selected using the `cost_mode` parameter:
+The environment supports two built-in reward (or cost) functions, which can be selected using the `cost_mode` parameter, or you can provide your own custom reward function.
 
 #### Default Mode (`cost_mode="default"`)
 
 The default reward function is a product of two components:
-- **Pole angle component**: $\cos(\theta)$
+
+$$r(s_t) = \cos(\theta_t) \cdot \cos(x_t)$$
+
+Where:
+- $\cos(\theta_t)$ is the pole angle component:
   - Maximum value of $1.0$ when the pole is upright ($\theta = 0$)
   - Minimum value of $-1.0$ when the pole is hanging down ($\theta = \pi$ or $\theta = -\pi$)
 
-- **Cart position component**: $\cos(x)$
+- $\cos(x_t)$ is the cart position component:
   - Maximum value of $1.0$ when the cart is centered ($x = 0$)
   - Decreases as the cart moves away from center
-
-Total reward = pole angle component $\times$ cart position component
 
 #### PILCO Mode (`cost_mode="pilco"`)
 
 The PILCO (Probabilistic Inference for Learning COntrol) cost function is based on the squared distance between the pole tip position and the target position:
 
-$cost = 1 - \exp(-\frac{d^2}{2\sigma_c^2})$
+$$c(s_t) = 1 - \exp\left(-\frac{d^2}{2\sigma_c^2}\right)$$
 
-$reward = -cost$
+$$r(s_t) = -c(s_t)$$
 
 Where:
-- $d$ is the Euclidean distance between the current pole tip position and the target (upright) position
+- $d = \sqrt{(x_{\text{tip}} - x_{\text{target}})^2 + (y_{\text{tip}} - y_{\text{target}})^2}$ is the Euclidean distance between the current pole tip position and the target position
+- $x_{\text{tip}} = x_t + l \cdot \sin(\theta_t)$ and $y_{\text{tip}} = l \cdot \cos(\theta_t)$ are the Cartesian coordinates of the pole tip
+- $x_{\text{target}} = 0$ and $y_{\text{target}} = l$ are the target (upright) coordinates
 - $\sigma_c$ is a parameter controlling the width of the cost function (default: 0.25)
 
 This cost function is more focused on the pole tip position in Cartesian space rather than the angular position and cart position separately.
+
+#### Custom Reward Function
+
+As demonstrated in the example above, you can provide your own custom reward function to tailor the learning task to your specific needs. The custom reward function has the signature:
+
+$$r_t = R(s_t, a_t, s_{t+1})$$
+
+Where:
+- $s_t = (x_t, \dot{x}_t, \theta_t, \dot{\theta}_t)$ is the state before the action
+- $a_t$ is the action taken
+- $s_{t+1} = (x_{t+1}, \dot{x}_{t+1}, \theta_{t+1}, \dot{\theta}_{t+1})$ is the resulting state after the action
+- $r_t$ is the scalar reward value
+
+This flexibility allows you to design complex reward shaping strategies, incorporate additional constraints, or experiment with different learning objectives.
+
+**Note**: The custom reward function always receives the internal state representation $(x, \dot{x}, \theta, \dot{\theta})$ regardless of the observation space format configured with `obs_mode`. This means your reward calculations always work with the actual physical state variables rather than their transformed representations.
 
 ### System Dynamics
 
 The system dynamics follow the standard cart-pole physics model. The state update equations are:
 
-$\ddot{x} = \frac{-2m_p l \dot{\theta}^2 \sin(\theta) + 3m_p g \sin(\theta)\cos(\theta) + 4F - 4b\dot{x}}{4(m_c + m_p) - 3m_p \cos^2(\theta)}$
+$$\ddot{x} = \frac{-2m_p l \dot{\theta}^2 \sin(\theta) + 3m_p g \sin(\theta)\cos(\theta) + 4F - 4b\dot{x}}{4(m_c + m_p) - 3m_p \cos^2(\theta)}$$
 
-$\ddot{\theta} = \frac{-3m_p l \dot{\theta}^2 \sin(\theta)\cos(\theta) + 6(m_c + m_p)g\sin(\theta) + 6(F - b\dot{x})\cos(\theta)}{4l(m_c + m_p) - 3m_p l \cos^2(\theta)}$
+$$\ddot{\theta} = \frac{-3m_p l \dot{\theta}^2 \sin(\theta)\cos(\theta) + 6(m_c + m_p)g\sin(\theta) + 6(F - b\dot{x})\cos(\theta)}{4l(m_c + m_p) - 3m_p l \cos^2(\theta)}$$
 
 Where:
 - $m_c = 0.5$ (kg): Mass of the cart (default)

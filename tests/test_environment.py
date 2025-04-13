@@ -149,3 +149,107 @@ def test_obs_modes():
     with pytest.raises(ValueError):
         env_invalid = gym.make("CartPoleSwingUp-v0", obs_mode="invalid")
         env_invalid.reset()
+
+
+def test_custom_reward_function():
+    """Test that a custom reward function can be used."""
+    # Define a simple custom reward function
+    def custom_reward(state, action, next_state):
+        x, x_dot, theta, theta_dot = next_state
+        # Simple reward based on pole angle
+        return np.cos(theta) * 2.0
+
+    # Create environment with custom reward function
+    env = gym.make("CartPoleSwingUp-v0", custom_reward_fn=custom_reward)
+    env.reset(seed=42)
+    action = np.array([0.5])
+    
+    # Get reward with custom function
+    _, custom_reward_value, _, _, _ = env.step(action)
+    
+    # Create environment with default reward function
+    env_default = gym.make("CartPoleSwingUp-v0")
+    env_default.reset(seed=42)
+    
+    # Get reward with default function
+    _, default_reward_value, _, _, _ = env_default.step(action)
+    
+    # Rewards should be different
+    assert custom_reward_value != default_reward_value
+    
+    # The custom reward should be exactly 2 times the cosine of theta
+    # from the resulting state of the environment step
+    next_state = env.unwrapped.state
+    expected_reward = np.cos(next_state[2]) * 2.0
+    np.testing.assert_allclose(custom_reward_value, expected_reward)
+
+
+def test_custom_reward_with_different_obs_modes():
+    """Test that custom reward works with different observation modes."""
+    # Define a custom reward function that uses all parameters
+    def complex_reward(state, action, next_state):
+        prev_x, prev_x_dot, prev_theta, prev_theta_dot = state
+        force = action[0]
+        x, x_dot, theta, theta_dot = next_state
+        
+        # Calculate angle improvement (reward for getting closer to upright)
+        angle_improvement = abs(prev_theta - np.pi) - abs(theta - np.pi)
+        
+        # Penalties
+        action_penalty = -0.1 * abs(force)
+        position_penalty = -0.05 * abs(x)
+        
+        return angle_improvement + action_penalty + position_penalty
+
+    # Test with raw observation mode
+    env_raw = gym.make("CartPoleSwingUp-v0", 
+                      obs_mode="raw", 
+                      custom_reward_fn=complex_reward)
+    env_raw.reset(seed=42)
+    
+    # Test with trigonometric observation mode
+    env_trig = gym.make("CartPoleSwingUp-v0", 
+                       obs_mode="trig", 
+                       custom_reward_fn=complex_reward)
+    env_trig.reset(seed=42)
+    
+    # Apply same action to both environments
+    action = np.array([0.5])
+    _, reward_raw, _, _, _ = env_raw.step(action)
+    _, reward_trig, _, _, _ = env_trig.step(action)
+    
+    # Even though the observation modes are different, the rewards should be identical
+    # since the custom reward function receives the internal state representation
+    np.testing.assert_allclose(reward_raw, reward_trig)
+
+
+def test_reward_function_receives_correct_values():
+    """Test that the custom reward function receives the correct state values."""
+    # Create a reward function that will store the values it receives
+    received_values = {"state": None, "action": None, "next_state": None}
+    
+    def recording_reward(state, action, next_state):
+        # Record the values
+        received_values["state"] = state
+        received_values["action"] = action
+        received_values["next_state"] = next_state
+        return 1.0  # Return a constant reward
+    
+    # Create environment with this reward function
+    env = gym.make("CartPoleSwingUp-v0", custom_reward_fn=recording_reward)
+    env.reset(seed=42)
+    
+    # Store the state before stepping
+    prev_state = env.unwrapped.state
+    
+    # Take an action
+    action = np.array([0.75])
+    _, _, _, _, _ = env.step(action)
+    
+    # Get the state after stepping
+    next_state = env.unwrapped.state
+    
+    # Verify that the reward function received the correct values
+    np.testing.assert_allclose(received_values["state"], prev_state)
+    np.testing.assert_allclose(received_values["action"], action)
+    np.testing.assert_allclose(received_values["next_state"], next_state)
